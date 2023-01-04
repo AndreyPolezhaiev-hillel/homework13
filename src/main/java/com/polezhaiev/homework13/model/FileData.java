@@ -10,9 +10,9 @@ public class FileData {
     private long fileLength;
     private String filePath;
 
-    public FileData(String fileName) {
+    public FileData(String fileName, long fileLength) {
         file = new File(fileName);
-        this.filePath = file.getPath();
+        this.filePath = file.getAbsolutePath();
 
         if(!file.exists()){
             try {
@@ -25,7 +25,7 @@ public class FileData {
         }
 
         this.fileName = file.getName();
-        this.fileLength = file.length();
+        this.fileLength = fileLength;
     }
 
     public File getFile() {

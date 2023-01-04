@@ -1,37 +1,72 @@
 package com.polezhaiev.homework13.service;
 
+import com.polezhaiev.homework13.exception.FileAlreadyExistsException;
 import com.polezhaiev.homework13.exception.FilePathException;
 import com.polezhaiev.homework13.model.FileData;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class FileNavigator implements FileNavigatorService{
-    Map<String, List<File>> files = new HashMap();
+    Map<Path, List<File>> files = new HashMap();
 
 
     @Override
-    public void add(FileData file, String path) throws FilePathException {
+    public boolean add(String path) throws FilePathException, FileAlreadyExistsException {
 
-        if(!file.getFilePath().equals(path)){
-            throw new FilePathException("Key path " + path + " doesn't equal file path " + file.getFilePath());
+        Path filePath = Paths.get(path);
+        Path fileName = filePath.getFileName();
+        Path parent = filePath.getParent();
+        File resultFile = new File(fileName.toString());
+
+        try{
+            resultFile.exists();
+
+            File resultFile1 = new File(path);
+            Path filePath1 = Paths.get(resultFile1.getAbsolutePath());
+            Path parent1 = filePath1.getParent();
+
+            if(path.equals(resultFile.getPath())){
+                if(files.containsKey(parent1)){
+                    files.get(parent1).add(resultFile1);
+
+                } else {
+                    List resultList = new ArrayList<>();
+                    resultList.add(resultFile1);
+
+
+                    files.put(parent1, resultList);
+                    return true;
+                }
+            }
+
+            if(files.containsKey(parent)){
+                files.get(parent).add(resultFile);
+
+            } else {
+                List resultList = new ArrayList<>();
+                resultList.add(resultFile);
+
+                files.put(parent, resultList);
+                return true;
+            }
+
+        } catch (RuntimeException e){
+            throw new FileAlreadyExistsException("File " + resultFile + " already exists");
+
         }
-
-        if(files.containsKey(path)){
-            files.get(path).add(file.getFile());
-
-        } else {
-            List <File> fileDataList = new ArrayList<>();
-            fileDataList.add(file.getFile());
-
-            files.put(path, fileDataList);
-        }
+        return true;
     }
 
     @Override
     public List<File> find(String path) {
-        if(files.containsKey(path)){
-            return files.get(path);
+        Path filePath = Paths.get(path);
+
+        if(files.containsKey(filePath)){
+            return files.get(filePath);
 
         }
         return null;
@@ -47,7 +82,7 @@ public class FileNavigator implements FileNavigatorService{
         List <List<File>> mainList = new ArrayList<>();
         List <File> resultList = new ArrayList<>();
 
-        for(Map.Entry<String, List<File>> entry: files.entrySet()){
+        for(Map.Entry<Path, List<File>> entry: files.entrySet()){
             mainList.add(entry.getValue());
 
         }
@@ -66,9 +101,11 @@ public class FileNavigator implements FileNavigatorService{
 
     @Override
     public void remove(String path) {
-        if(files.containsKey(path)){
-            files.remove(path);
-            System.out.println("Path \"" + path + "\" successfully removed!");
+        Path filePath = Paths.get(path);
+
+        if(files.containsKey(filePath)){
+            files.remove(filePath);
+            System.out.println("Path \"" + filePath + "\" successfully removed!");
         } else{
             System.out.println("No matching key!");
         }
@@ -78,11 +115,12 @@ public class FileNavigator implements FileNavigatorService{
     @Override
     public List<File> sortBySize() {
         if(files.size() == 0 || files == null){
+            System.out.println("Nothing to sort, no contained elements");
             return null;
         }
 
         int size = 0;
-        for(Map.Entry<String, List<File>> entry: files.entrySet()){
+        for(Map.Entry<Path, List<File>> entry: files.entrySet()){
             if(files.containsKey(entry.getKey())){
                 for (int i = 0; i < entry.getValue().size(); i++) {
                     size++;
@@ -95,7 +133,7 @@ public class FileNavigator implements FileNavigatorService{
         List<File> resultList = new ArrayList<>();
 
         int index = 0;
-        for(Map.Entry<String, List<File>> entry: files.entrySet()){
+        for(Map.Entry<Path, List<File>> entry: files.entrySet()){
             if(files.containsKey(entry.getKey())){
                 for (int i = 0; i < entry.getValue().size(); i++) {
                     if(index == entry.getValue().size()){
